@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
+use rand::{thread_rng, Rng};
 
 use crate::lifetimes::DespawnAfter;
 
@@ -19,9 +20,16 @@ struct LaserAssets {
 #[derive(Component, Reflect, Default)]
 pub struct Laser;
 
-#[derive(Component, Reflect, Default)]
+#[derive(Component, Reflect)]
 pub struct Gun {
     pub(crate) last_fired: f64,
+}
+impl Default for Gun{
+    fn default() -> Self {
+        Self{
+            last_fired: (thread_rng().gen::<f64>() - 1.0) * 5.0
+        }
+    }
 }
 
 fn setup(

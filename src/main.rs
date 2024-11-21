@@ -2,11 +2,13 @@
 mod lasers;
 mod lifetimes;
 mod ships;
+mod spawners;
+
+use std::time::Duration;
 
 use bevy::{
     core_pipeline::bloom::Bloom,
     math::vec3,
-    pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
     render::{
         settings::{PowerPreference, WgpuSettings},
@@ -14,9 +16,8 @@ use bevy::{
     },
 };
 use bevy_dev_tools::fps_overlay::FpsOverlayPlugin;
-use lasers::Gun;
-use rand::Rng;
 use ships::*;
+use spawners::Spawner;
 
 fn main() {
     App::new()
@@ -44,6 +45,7 @@ fn main() {
             ships::plugin,
             lasers::plugin,
             lifetimes::plugin,
+            spawners::plugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -86,43 +88,49 @@ fn setup(
             .with_translation(vec3(-200., 50., -100.)),
     ));
 
-    commands.spawn((Target(Team::Red), Transform::from_translation(vec3(-30.,0.,0.))));
-    commands.spawn((Target(Team::Blue), Transform::from_translation(vec3(30.,0.,0.))));
-
-    // ships
-    let mut rng = rand::thread_rng();
-    let space = 80.;
-    for _ in 0..=10000 {
-        let team =
-            Team::try_from(rng.gen_range(0..=1)).expect("group number should have been in range");
-
-        commands.spawn((
-            MeshMaterial3d(
-                ship_assets
-                    .materials
-                    .get(&team)
-                    .expect("ship_assets should be initialized")
-                    .clone(),
-            ),
-            Mesh3d(
-                ship_assets
-                    .mesh
-                    .get(&team)
-                    .expect("ship_assets should be initialized")
-                    .clone(),
-            ),
-            Transform::from_translation(vec3(
-                (rng.gen::<f32>() * space) - space / 2.,
-                (rng.gen::<f32>() * space) - space / 2.,
-                (rng.gen::<f32>() * space) - space / 2.,
-            )),
-            Visibility::Visible,
-            team,
-            Gun {
-                last_fired: (rng.gen::<f64>() - 1.0) * 5.0,
-            },
-            NotShadowReceiver,
-            NotShadowCaster,
-        ));
+    let red_ship_center = vec3(-50., 0., 0.);
+    let blue_ship_center = vec3(50., 0., 0.);
+    for y in 0..=1 {
+        for z in 0..=11 {
+            let z = z as f32;
+            let y = y as f32;
+            commands.spawn((
+                Spawner {
+                    max: Some(100),
+                    delay: Duration::from_secs_f32(0.1),
+                    team: Team::Red,
+                    last_spawn: None,
+                    spawned: 0,
+                },
+                Transform::from_translation(red_ship_center + vec3(0., y * 5., 4.0 * z))
+                    .with_rotation(Quat::from_rotation_y(-90.0_f32.to_radians())),
+            ));
+        }
     }
+    for y in 0..=1 {
+        for z in 0..=11 {
+            let z = z as f32;
+            let y = y as f32;
+            commands.spawn((
+                Spawner {
+                    max: Some(100),
+                    delay: Duration::from_secs_f32(0.1),
+                    team: Team::Blue,
+                    last_spawn: None,
+                    spawned: 0,
+                },
+                Transform::from_translation(blue_ship_center + vec3(0., y * 5., 4.0 * z))
+                    .with_rotation(Quat::from_rotation_y(90.0_f32.to_radians())),
+            ));
+        }
+    }
+
+    commands.spawn((
+        Target(Team::Red),
+        Transform::from_translation(blue_ship_center),
+    ));
+    commands.spawn((
+        Target(Team::Blue),
+        Transform::from_translation(red_ship_center),
+    ));
 }

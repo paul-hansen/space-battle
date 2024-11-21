@@ -1,4 +1,12 @@
-use bevy::{math::vec3, prelude::*, render::mesh::ConeMeshBuilder, utils::HashMap};
+use bevy::{
+    math::vec3,
+    pbr::{NotShadowCaster, NotShadowReceiver},
+    prelude::*,
+    render::mesh::ConeMeshBuilder,
+    utils::HashMap,
+};
+
+use crate::lasers::Gun;
 
 pub fn plugin(app: &mut App) {
     app.register_type::<Ship>();
@@ -7,7 +15,43 @@ pub fn plugin(app: &mut App) {
     app.add_systems(Update, (move_ships, rotate_towards_target));
 }
 
+pub struct SpawnShip {
+    pub transform: Transform,
+    pub team: Team,
+}
+
+impl Command for SpawnShip {
+    fn apply(self, world: &mut World) {
+        let ship_assets = world
+            .get_resource::<ShipAssets>()
+            .expect("ship_assets resource was missing");
+        world.spawn((
+            MeshMaterial3d(
+                ship_assets
+                    .materials
+                    .get(&self.team)
+                    .expect("ship_assets should be initialized")
+                    .clone(),
+            ),
+            Mesh3d(
+                ship_assets
+                    .mesh
+                    .get(&self.team)
+                    .expect("ship_assets should be initialized")
+                    .clone(),
+            ),
+            self.transform,
+            Visibility::Visible,
+            self.team,
+            Gun::default(),
+            NotShadowReceiver,
+            NotShadowCaster,
+        ));
+    }
+}
+
 #[derive(Reflect, Component, Default)]
+#[require(Transform, Visibility)]
 pub struct Ship;
 
 #[derive(Copy, Clone, Component, Reflect, Default, Hash, Eq, PartialEq)]
