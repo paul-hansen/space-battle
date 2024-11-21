@@ -1,6 +1,7 @@
 //! A minimal example that outputs "hello world"
-mod boids;
 mod lasers;
+mod lifetimes;
+mod ships;
 
 use bevy::{
     core_pipeline::bloom::Bloom,
@@ -8,14 +9,14 @@ use bevy::{
     pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
     render::{
-        mesh::ConeMeshBuilder,
         settings::{PowerPreference, WgpuSettings},
         RenderPlugin,
     },
 };
 use bevy_dev_tools::fps_overlay::FpsOverlayPlugin;
-use boids::*;
+use lasers::Gun;
 use rand::Rng;
+use ships::*;
 
 fn main() {
     App::new()
@@ -40,8 +41,9 @@ fn main() {
                     ..default()
                 }),
             FpsOverlayPlugin::default(),
-            boids::plugin,
+            ships::plugin,
             lasers::plugin,
+            lifetimes::plugin,
         ))
         .add_systems(Startup, setup)
         .run();
@@ -52,68 +54,8 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut ambient_light: ResMut<AmbientLight>,
+    ship_assets: ResMut<ShipAssets>,
 ) {
-    ambient_light.brightness = 0.5;
-    // circular base
-    commands.spawn((
-        Mesh3d(meshes.add(Sphere::new(4.0))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::WHITE,
-            emissive: LinearRgba::rgb(15000.0, 15000.0, 10000.0),
-            ..default()
-        })),
-        Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        Target,
-    ));
-
-    // boids
-    let mut rng = rand::thread_rng();
-    let space = 80.;
-    let mat = materials.add(StandardMaterial {
-        base_color: Color::srgb_u8(124, 144, 255),
-        alpha_mode: AlphaMode::Opaque,
-        ..default()
-    });
-    let mut cone_mesh = ConeMeshBuilder::new(0.5, 2.0, 32).build();
-    cone_mesh.transform_by(Transform::from_rotation(Quat::from_rotation_x(
-        -90.0_f32.to_radians(),
-    )));
-    let mut left_cone = cone_mesh.clone();
-    left_cone.transform_by(
-        Transform::from_translation(vec3(0.7, 0.0, 0.0)).with_scale(Vec3::splat(0.6)),
-    );
-    let mut right_cone = cone_mesh.clone();
-    right_cone.transform_by(
-        Transform::from_translation(vec3(-0.7, 0.0, 0.0)).with_scale(Vec3::splat(0.6)),
-    );
-    cone_mesh.merge(&left_cone);
-    cone_mesh.merge(&right_cone);
-    let cone = meshes.add(cone_mesh);
-    for _ in 0..=10000 {
-        commands.spawn((
-            MeshMaterial3d(mat.clone()),
-            Mesh3d(cone.clone()),
-            Transform::from_translation(vec3(
-                (rng.gen::<f32>() * space) - space / 2.,
-                (rng.gen::<f32>() * space) - space / 2.,
-                (rng.gen::<f32>() * space) - space / 2.,
-            )),
-            Visibility::Visible,
-            BoidGroup::Red,
-            NotShadowReceiver,
-            NotShadowCaster,
-        ));
-    }
-    // light
-    commands.spawn((
-        PointLight {
-            intensity: 60_200_000.,
-            range: 3600.,
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(0.0, 0.0, 0.0),
-    ));
     // camera
     commands.spawn((
         Camera3d::default(),
@@ -125,4 +67,62 @@ fn setup(
         },
         Transform::from_xyz(125.0, 45., 85.).looking_at(Vec3::ZERO, Vec3::Y),
     ));
+    ambient_light.brightness = 10.5;
+    // star
+    commands.spawn((
+        PointLight {
+            intensity: 600_200_000.,
+            range: 56000.,
+            shadows_enabled: true,
+            ..default()
+        },
+        Mesh3d(meshes.add(Sphere::new(4.0))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: Color::WHITE,
+            emissive: LinearRgba::rgb(15000.0, 15000.0, 10000.0),
+            ..default()
+        })),
+        Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
+            .with_translation(vec3(-200., 50., -100.)),
+    ));
+
+    commands.spawn((Target(Team::Red), Transform::from_translation(vec3(-30.,0.,0.))));
+    commands.spawn((Target(Team::Blue), Transform::from_translation(vec3(30.,0.,0.))));
+
+    // ships
+    let mut rng = rand::thread_rng();
+    let space = 80.;
+    for _ in 0..=10000 {
+        let team =
+            Team::try_from(rng.gen_range(0..=1)).expect("group number should have been in range");
+
+        commands.spawn((
+            MeshMaterial3d(
+                ship_assets
+                    .materials
+                    .get(&team)
+                    .expect("ship_assets should be initialized")
+                    .clone(),
+            ),
+            Mesh3d(
+                ship_assets
+                    .mesh
+                    .get(&team)
+                    .expect("ship_assets should be initialized")
+                    .clone(),
+            ),
+            Transform::from_translation(vec3(
+                (rng.gen::<f32>() * space) - space / 2.,
+                (rng.gen::<f32>() * space) - space / 2.,
+                (rng.gen::<f32>() * space) - space / 2.,
+            )),
+            Visibility::Visible,
+            team,
+            Gun {
+                last_fired: (rng.gen::<f64>() - 1.0) * 5.0,
+            },
+            NotShadowReceiver,
+            NotShadowCaster,
+        ));
+    }
 }

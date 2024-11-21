@@ -1,10 +1,19 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 
-use crate::Boid;
+use crate::lifetimes::DespawnAfter;
 
 pub fn plugin(app: &mut App) {
     app.register_type::<Laser>();
+    app.add_systems(Startup, setup);
     app.add_systems(Update, (shoot, move_lasers));
+}
+
+#[derive(Resource, Reflect)]
+struct LaserAssets {
+    mesh: Handle<Mesh>,
+    material: Handle<StandardMaterial>,
 }
 
 #[derive(Component, Reflect, Default)]
@@ -12,22 +21,53 @@ pub struct Laser;
 
 #[derive(Component, Reflect, Default)]
 pub struct Gun {
-    last_fired: f64,
+    pub(crate) last_fired: f64,
 }
 
-pub fn move_lasers(mut lasers: Query<&mut Transform, With<Laser>>, time: Res<Time>) {
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let mut mesh = Capsule3d::new(0.01, 0.8).mesh().build();
+    mesh.transform_by(Transform::from_rotation(Quat::from_rotation_x(
+        90.0_f32.to_radians(),
+    )));
+    let mesh = meshes.add(mesh);
+    let material = materials.add(StandardMaterial {
+        base_color: Color::linear_rgb(1.0, 0., 0.),
+        emissive: LinearRgba::rgb(100.0, 1.0, 1.0),
+        ..default()
+    });
+    commands.insert_resource(LaserAssets { mesh, material });
+}
+
+fn move_lasers(mut lasers: Query<&mut Transform, With<Laser>>, time: Res<Time>) {
     for mut transform in lasers.iter_mut() {
         let forward = transform.forward();
-        transform.translation += forward * 15.0 * time.delta_secs();
+        transform.translation += forward * 35.0 * time.delta_secs();
     }
 }
 
-pub fn shoot(mut commands: Commands, mut guns: Query<(&GlobalTransform, &mut Gun)>, time: Res<Time>) {
+fn shoot(
+    mut commands: Commands,
+    mut guns: Query<(&GlobalTransform, &mut Gun)>,
+    laser_assets: Res<LaserAssets>,
+    time: Res<Time>,
+) {
     for (transform, mut gun) in guns.iter_mut() {
         let now = time.elapsed_secs_f64();
-        if gun.last_fired < now {
+        if gun.last_fired + 5.0 < now {
             gun.last_fired = now;
-            commands.spawn((Laser, Transform::default(), Visibility::default()));
+            commands.spawn((
+                Laser,
+                Mesh3d(laser_assets.mesh.clone()),
+                MeshMaterial3d(laser_assets.material.clone()),
+                DespawnAfter::new(Duration::from_secs(2), &time),
+                transform.compute_transform(),
+                *transform,
+                Visibility::default(),
+            ));
         }
     }
 }
