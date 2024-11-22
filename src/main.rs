@@ -16,9 +16,9 @@ use bevy::{
         RenderPlugin,
     },
 };
-use fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
 use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 use bevy_spatial::AutomaticUpdate;
+use fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
 use ships::*;
 use spawners::Spawner;
 

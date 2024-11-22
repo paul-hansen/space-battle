@@ -1,6 +1,8 @@
 /// Copied from Bevy's dev_tools crate so the text position can be customized.
-
-use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, prelude::*};
+use bevy::{
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 
 /// [`GlobalZIndex`] used to render the fps overlay.
 ///
@@ -72,7 +74,7 @@ fn setup(mut commands: Commands, overlay_config: Res<FpsOverlayConfig>) {
             Node {
                 // We need to make sure the overlay doesn't affect the position of other UI nodes
                 position_type: PositionType::Absolute,
-                margin: UiRect{
+                margin: UiRect {
                     left: Val::Px(24.),
                     top: Val::Px(24.),
                     ..default()

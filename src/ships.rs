@@ -6,7 +6,10 @@ use bevy::{
 };
 use bevy_spatial::{kdtree::KDTree3A, SpatialAccess};
 
-use crate::{lasers::{Gun, Laser}, TrackedByKDTree};
+use crate::{
+    lasers::{Gun, Laser},
+    TrackedByKDTree,
+};
 
 pub fn plugin(app: &mut App) {
     app.register_type::<Ship>();
@@ -56,39 +59,46 @@ fn setup(
         assets.mesh.insert(team, meshes.add(cone_mesh));
     }
     commands.insert_resource(assets);
-    commands.spawn(Node{
-        margin:UiRect{
-            left: Val::Px(24.0),
-            top: Val::Px(48.0),
+    commands
+        .spawn(Node {
+            margin: UiRect {
+                left: Val::Px(24.0),
+                top: Val::Px(48.0),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    }).with_child((
-        Text::default(),
-        TextFont{
-            font: asset_server.load("IBM Plex Mono/IBMPlexMono-Regular.ttf"),
-            font_size: 16.,
-            ..default()
-        },
-        StatsText,
+        })
+        .with_child((
+            Text::default(),
+            TextFont {
+                font: asset_server.load("IBM Plex Mono/IBMPlexMono-Regular.ttf"),
+                font_size: 16.,
+                ..default()
+            },
+            StatsText,
         ));
 }
 
 #[derive(Component)]
 struct StatsText;
 
-fn update_ship_count(mut text: Query<&mut Text, With<StatsText>>,ships: Query<Entity, With<Ship>>, lasers: Query<Entity, With<Laser>>, entities: Query<Entity>) {
+fn update_ship_count(
+    mut text: Query<&mut Text, With<StatsText>>,
+    ships: Query<Entity, With<Ship>>,
+    lasers: Query<Entity, With<Laser>>,
+    entities: Query<Entity>,
+) {
     let ship_count = ships.iter().len();
     let laser_count = lasers.iter().len();
     let mut text = text.single_mut();
     let entity_count = entities.iter().len();
-    text.0 = format!("\
+    text.0 = format!(
+        "\
         Entities: {entity_count}\n\
         ├ Ships: {ship_count}\n\
         └ Lasers: {laser_count}\n\
-    ");
-
-
+    "
+    );
 }
 
 pub struct SpawnShip {
