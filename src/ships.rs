@@ -205,35 +205,37 @@ pub fn rotate_towards_target(
 ) {
     let targets: Vec<_> = targets.into_iter().collect();
 
-    for (mut transform, global_transform, team) in ships.iter_mut() {
-        let global_transform = global_transform.compute_transform();
-        let target = targets.iter().fold(
-            None::<(f32, Vec3)>,
-            |previous, (next_transform, next_target)| {
-                if next_target.0 != *team {
-                    return previous;
-                }
-                let pos = global_transform.translation;
-                let next_pos = next_transform.translation();
-                let dist = next_pos.distance_squared(pos);
-                let Some(previous) = previous else {
-                    return Some((dist, next_pos));
-                };
-                if dist < previous.0 {
-                    Some((dist, next_pos))
-                } else {
-                    Some(previous)
-                }
-            },
-        );
-        let Some((_, target)) = target else {
-            continue;
-        };
-        let look = global_transform.looking_at(target, Vec3::Y).rotation;
-        transform.rotation = transform
-            .rotation
-            .rotate_towards(look, 40.0_f32.to_radians() * time.delta_secs());
-    }
+    ships
+        .par_iter_mut()
+        .for_each(|(mut transform, global_transform, team)| {
+            let global_transform = global_transform.compute_transform();
+            let target = targets.iter().fold(
+                None::<(f32, Vec3)>,
+                |previous, (next_transform, next_target)| {
+                    if next_target.0 != *team {
+                        return previous;
+                    }
+                    let pos = global_transform.translation;
+                    let next_pos = next_transform.translation();
+                    let dist = next_pos.distance_squared(pos);
+                    let Some(previous) = previous else {
+                        return Some((dist, next_pos));
+                    };
+                    if dist < previous.0 {
+                        Some((dist, next_pos))
+                    } else {
+                        Some(previous)
+                    }
+                },
+            );
+            let Some((_, target)) = target else {
+                return;
+            };
+            let look = global_transform.looking_at(target, Vec3::Y).rotation;
+            transform.rotation = transform
+                .rotation
+                .rotate_towards(look, 40.0_f32.to_radians() * time.delta_secs());
+        });
 }
 
 pub fn rotate_away_from_obstacles(
@@ -242,7 +244,7 @@ pub fn rotate_away_from_obstacles(
     time: Res<Time>,
 ) {
     ships
-        .iter_mut()
+        .par_iter_mut()
         .for_each(|(mut transform, global_transform)| {
             let translation = global_transform.translation();
             let Some((other_pos, _)) = tree.nearest_neighbour(global_transform.translation_vec3a())
@@ -263,16 +265,6 @@ pub fn rotate_away_from_obstacles(
                 target_direction,
                 100.0 * time.delta_secs(),
             );
-            assert!(transform.forward().is_normalized());
-            // gizmos.line(
-            //     global_transform.translation(),
-            //     (global_transform.translation_vec3a() + away_direction * 3.0).into(),
-            //     Color::WHITE,
-            // );
-
-            // transform.rotation = transform
-            //     .rotation
-            //     .rotate_towards(look, 20.0_f32.to_radians() * time.delta_secs());
         });
 }
 
