@@ -1,9 +1,4 @@
-use bevy::{
-    math::{vec3, Vec3A},
-    prelude::*,
-    render::mesh::ConeMeshBuilder,
-    utils::HashMap,
-};
+use bevy::{math::vec3, prelude::*, render::mesh::ConeMeshBuilder, utils::HashMap};
 use bevy_spatial::{kdtree::KDTree3A, SpatialAccess};
 
 use crate::{lasers::Gun, TrackedByKDTree};
@@ -195,14 +190,12 @@ pub fn rotate_away_from_obstacles(
     mut ships: Query<(&mut Transform, &GlobalTransform), With<Ship>>,
     tree: Res<KDTree3A<TrackedByKDTree>>,
     time: Res<Time>,
-    mut gizmos: Gizmos,
 ) {
     ships
         .iter_mut()
         .for_each(|(mut transform, global_transform)| {
             let translation = global_transform.translation();
-            let Some((other_pos, other_entity)) =
-                tree.nearest_neighbour(global_transform.translation_vec3a())
+            let Some((other_pos, _)) = tree.nearest_neighbour(global_transform.translation_vec3a())
             else {
                 return;
             };
@@ -215,7 +208,11 @@ pub fn rotate_away_from_obstacles(
             }
             let target_direction = target_direction.normalize();
             // println!("{:?} {:?}", transform.rotation, target_direction);
-            transform.rotation = rotate_towards(transform.rotation, target_direction, 100.0 * time.delta_secs());
+            transform.rotation = rotate_towards(
+                transform.rotation,
+                target_direction,
+                100.0 * time.delta_secs(),
+            );
             assert!(transform.forward().is_normalized());
             // gizmos.line(
             //     global_transform.translation(),

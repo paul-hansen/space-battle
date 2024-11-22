@@ -23,8 +23,8 @@ fn spawn(
     time: Res<Time>,
 ) {
     for (transform, mut spawner) in query.iter_mut() {
-        if let Some(max) = spawner.max{
-            if spawner.spawned > max{
+        if let Some(max) = spawner.max {
+            if spawner.spawned > max {
                 continue;
             }
         }

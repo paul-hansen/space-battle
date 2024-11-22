@@ -24,10 +24,10 @@ pub struct Laser;
 pub struct Gun {
     pub(crate) last_fired: f64,
 }
-impl Default for Gun{
+impl Default for Gun {
     fn default() -> Self {
-        Self{
-            last_fired: (thread_rng().gen::<f64>() - 1.0) * 5.0
+        Self {
+            last_fired: (thread_rng().gen::<f64>() - 1.0) * 5.0,
         }
     }
 }

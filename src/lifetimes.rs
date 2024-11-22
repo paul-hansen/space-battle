@@ -8,21 +8,21 @@ pub fn plugin(app: &mut App) {
 }
 
 #[derive(Component, Reflect)]
-pub struct DespawnAfter{
+pub struct DespawnAfter {
     despawn_at: f64,
 }
 
-impl DespawnAfter{
+impl DespawnAfter {
     pub fn new(duration: Duration, time: &Time) -> Self {
-        Self{
+        Self {
             despawn_at: time.elapsed_secs_f64() + duration.as_secs_f64(),
         }
     }
 }
 
 fn despawn_after(mut commands: Commands, query: Query<(Entity, &DespawnAfter)>, time: Res<Time>) {
-    for (entity, DespawnAfter{despawn_at}) in query.iter(){
-        if time.elapsed_secs_f64() > *despawn_at{
+    for (entity, DespawnAfter { despawn_at }) in query.iter() {
+        if time.elapsed_secs_f64() > *despawn_at {
             commands.entity(entity).despawn_recursive();
         }
     }

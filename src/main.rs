@@ -7,10 +7,13 @@ mod spawners;
 use std::time::Duration;
 
 use bevy::{
-    core_pipeline::bloom::Bloom, gizmos::GizmoPlugin, math::vec3, prelude::*, render::{
+    core_pipeline::bloom::Bloom,
+    math::vec3,
+    prelude::*,
+    render::{
         settings::{PowerPreference, WgpuSettings},
         RenderPlugin,
-    }
+    },
 };
 use bevy_dev_tools::fps_overlay::FpsOverlayPlugin;
 use bevy_spatial::AutomaticUpdate;
