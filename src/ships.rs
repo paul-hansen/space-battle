@@ -1,7 +1,12 @@
-use bevy::{math::vec3, prelude::*, render::mesh::ConeMeshBuilder, utils::HashMap};
+use std::time::Duration;
+
+use bevy::{
+    math::vec3, prelude::*, render::mesh::ConeMeshBuilder, time::common_conditions::on_timer,
+    utils::HashMap,
+};
 use bevy_spatial::{kdtree::KDTree3A, SpatialAccess};
 
-use crate::{lasers::Gun, TrackedByKDTree};
+use crate::{lasers::{Gun, Laser}, TrackedByKDTree};
 
 pub fn plugin(app: &mut App) {
     app.register_type::<Ship>();
@@ -13,8 +18,77 @@ pub fn plugin(app: &mut App) {
             move_ships,
             rotate_towards_target,
             rotate_away_from_obstacles,
+            update_ship_count.run_if(on_timer(Duration::from_secs(1))),
         ),
     );
+}
+
+fn setup(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    asset_server: ResMut<AssetServer>,
+) {
+    let mut assets = ShipAssets::default();
+    for &team in Team::ALL.iter() {
+        assets.materials.insert(
+            team,
+            materials.add(StandardMaterial {
+                base_color: Color::from(team),
+                alpha_mode: AlphaMode::Opaque,
+                ..default()
+            }),
+        );
+        let mut cone_mesh = ConeMeshBuilder::new(0.5, 2.0, 32).build();
+        cone_mesh.transform_by(Transform::from_rotation(Quat::from_rotation_x(
+            -90.0_f32.to_radians(),
+        )));
+        let mut left_cone = cone_mesh.clone();
+        left_cone.transform_by(
+            Transform::from_translation(vec3(0.7, 0.0, 0.0)).with_scale(Vec3::splat(0.6)),
+        );
+        let mut right_cone = cone_mesh.clone();
+        right_cone.transform_by(
+            Transform::from_translation(vec3(-0.7, 0.0, 0.0)).with_scale(Vec3::splat(0.6)),
+        );
+        cone_mesh.merge(&left_cone);
+        cone_mesh.merge(&right_cone);
+        assets.mesh.insert(team, meshes.add(cone_mesh));
+    }
+    commands.insert_resource(assets);
+    commands.spawn(Node{
+        margin:UiRect{
+            left: Val::Px(24.0),
+            top: Val::Px(48.0),
+            ..default()
+        },
+        ..default()
+    }).with_child((
+        Text::default(),
+        TextFont{
+            font: asset_server.load("IBM Plex Mono/IBMPlexMono-Regular.ttf"),
+            font_size: 16.,
+            ..default()
+        },
+        StatsText,
+        ));
+}
+
+#[derive(Component)]
+struct StatsText;
+
+fn update_ship_count(mut text: Query<&mut Text, With<StatsText>>,ships: Query<Entity, With<Ship>>, lasers: Query<Entity, With<Laser>>, entities: Query<Entity>) {
+    let ship_count = ships.iter().len();
+    let laser_count = lasers.iter().len();
+    let mut text = text.single_mut();
+    let entity_count = entities.iter().len();
+    text.0 = format!("\
+        Entities: {entity_count}\n\
+        ├ Ships: {ship_count}\n\
+        └ Lasers: {laser_count}\n\
+    ");
+
+
 }
 
 pub struct SpawnShip {
@@ -105,40 +179,6 @@ pub struct Obstacle {
 pub struct ShipAssets {
     pub materials: HashMap<Team, Handle<StandardMaterial>>,
     pub mesh: HashMap<Team, Handle<Mesh>>,
-}
-
-fn setup(
-    mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-) {
-    let mut assets = ShipAssets::default();
-    for &team in Team::ALL.iter() {
-        assets.materials.insert(
-            team,
-            materials.add(StandardMaterial {
-                base_color: Color::from(team),
-                alpha_mode: AlphaMode::Opaque,
-                ..default()
-            }),
-        );
-        let mut cone_mesh = ConeMeshBuilder::new(0.5, 2.0, 32).build();
-        cone_mesh.transform_by(Transform::from_rotation(Quat::from_rotation_x(
-            -90.0_f32.to_radians(),
-        )));
-        let mut left_cone = cone_mesh.clone();
-        left_cone.transform_by(
-            Transform::from_translation(vec3(0.7, 0.0, 0.0)).with_scale(Vec3::splat(0.6)),
-        );
-        let mut right_cone = cone_mesh.clone();
-        right_cone.transform_by(
-            Transform::from_translation(vec3(-0.7, 0.0, 0.0)).with_scale(Vec3::splat(0.6)),
-        );
-        cone_mesh.merge(&left_cone);
-        cone_mesh.merge(&right_cone);
-        assets.mesh.insert(team, meshes.add(cone_mesh));
-    }
-    commands.insert_resource(assets);
 }
 
 fn move_ships(mut ships: Query<&mut Transform, With<Ship>>, time: Res<Time>) {

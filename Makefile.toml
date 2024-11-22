@@ -1,7 +1,7 @@
 [tasks.run]
 command = "cargo"
 env={ "WGPU_BACKEND" = "vulkan" }
-args = ["run", "--features=dev_mode", "--features=bevy/dynamic_linking"]
+args = ["run", "--features=bevy/dynamic_linking"]
 
 [tasks.run-release]
 command = "cargo"

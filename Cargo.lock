@@ -584,34 +584,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_dev_tools"
-version = "0.15.0-rc.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64b6c91329b85e93b0260df83a5b60a490ed6df7267cb9da61352bcf97a9f78d"
-dependencies = [
- "bevy_app",
- "bevy_asset",
- "bevy_color",
- "bevy_core",
- "bevy_core_pipeline",
- "bevy_diagnostic",
- "bevy_ecs",
- "bevy_gizmos",
- "bevy_hierarchy",
- "bevy_input",
- "bevy_math",
- "bevy_reflect",
- "bevy_render",
- "bevy_state",
- "bevy_text",
- "bevy_time",
- "bevy_transform",
- "bevy_ui",
- "bevy_utils",
- "bevy_window",
-]
-
-[[package]]
 name = "bevy_diagnostic"
 version = "0.15.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -625,15 +597,6 @@ dependencies = [
  "bevy_utils",
  "const-fnv1a-hash",
  "sysinfo",
-]
-
-[[package]]
-name = "bevy_dylib"
-version = "0.15.0-rc.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15aa048c0ee05fda963f52e250342c1a190579dc0f7c78a3c38739905befe778"
-dependencies = [
- "bevy_internal",
 ]
 
 [[package]]
@@ -669,6 +632,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "bevy_embedded_assets"
+version = "0.12.0-rc.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7bc8809f052a175d86e19794434bae861d663b0da0c0f7fa2bab4fc1fcfcd01"
+dependencies = [
+ "bevy",
+ "cargo-emit",
+ "futures-io",
+ "futures-lite",
+ "thiserror",
 ]
 
 [[package]]
@@ -831,7 +807,6 @@ dependencies = [
  "bevy_core",
  "bevy_core_pipeline",
  "bevy_derive",
- "bevy_dev_tools",
  "bevy_diagnostic",
  "bevy_ecs",
  "bevy_gilrs",
@@ -1550,6 +1525,12 @@ dependencies = [
  "wayland-backend",
  "wayland-client",
 ]
+
+[[package]]
+name = "cargo-emit"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1582e1c9e755dd6ad6b224dcffb135d199399a4568d454bd89fe515ca8425695"
 
 [[package]]
 name = "cc"
@@ -3990,8 +3971,7 @@ name = "space-battle"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_dev_tools",
- "bevy_dylib",
+ "bevy_embedded_assets",
  "bevy_spatial",
  "color-backtrace",
  "glam",

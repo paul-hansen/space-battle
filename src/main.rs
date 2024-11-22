@@ -1,4 +1,5 @@
 //! A minimal example that outputs "hello world"
+mod fps_overlay;
 mod lasers;
 mod lifetimes;
 mod ships;
@@ -15,7 +16,8 @@ use bevy::{
         RenderPlugin,
     },
 };
-use bevy_dev_tools::fps_overlay::FpsOverlayPlugin;
+use fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
+use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 use bevy_spatial::AutomaticUpdate;
 use ships::*;
 use spawners::Spawner;
@@ -26,6 +28,9 @@ struct TrackedByKDTree;
 fn main() {
     color_backtrace::install();
     App::new()
+        .add_plugins(EmbeddedAssetPlugin {
+            mode: PluginMode::ReplaceDefault,
+        })
         .add_plugins((
             DefaultPlugins
                 .set(WindowPlugin {
@@ -64,7 +69,14 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut ambient_light: ResMut<AmbientLight>,
+    asset_server: ResMut<AssetServer>,
+    mut fps_overlay_config: ResMut<FpsOverlayConfig>,
 ) {
+    fps_overlay_config.text_config = TextFont {
+        font: asset_server.load("IBM Plex Mono/IBMPlexMono-Regular.ttf"),
+        font_size: 16.,
+        ..default()
+    };
     // camera
     commands.spawn((
         Camera3d::default(),
