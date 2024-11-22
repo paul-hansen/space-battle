@@ -13,8 +13,7 @@ use bevy::{
     math::vec3,
     prelude::*,
     render::{
-        settings::{PowerPreference, WgpuSettings},
-        RenderPlugin,
+        mesh::CylinderMeshBuilder, settings::{PowerPreference, WgpuSettings}, RenderPlugin
     },
 };
 use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
@@ -73,6 +72,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    ship_assets: Res<ShipAssets>,
     mut ambient_light: ResMut<AmbientLight>,
     asset_server: ResMut<AssetServer>,
     mut fps_overlay_config: ResMut<FpsOverlayConfig>,
@@ -112,8 +112,36 @@ fn setup(
             .with_translation(vec3(-200., 50., -100.)),
     ));
 
-    let red_ship_center = vec3(-80., 3., 5.);
-    let blue_ship_center = vec3(80., 0., 0.);
+    let red_capital_ship_center = vec3(-80., -13., 35.);
+    commands.spawn((
+        Mesh3d(meshes.add(CylinderMeshBuilder{
+            resolution: 6,
+            segments: 1,
+            caps: true,
+            ..default()
+        })),
+        Transform{
+            translation: red_capital_ship_center,
+            scale: Vec3::new(10., 60., 10.),
+            rotation: Quat::from_axis_angle(Vec3::X , 90.0_f32.to_radians()),
+        },
+        MeshMaterial3d(ship_assets.materials.get(&Team::Red).unwrap().clone()),
+    ));
+    let blue_capital_ship_center = vec3(80., 1., 0.);
+    commands.spawn((
+        Mesh3d(meshes.add(CylinderMeshBuilder{
+            resolution: 6,
+            segments: 1,
+            caps: true,
+            ..default()
+        })),
+        Transform{
+            translation: blue_capital_ship_center,
+            scale: Vec3::new(10., 60., 10.),
+            rotation: Quat::from_axis_angle(Vec3::X , 90.0_f32.to_radians()),
+        },
+        MeshMaterial3d(ship_assets.materials.get(&Team::Blue).unwrap().clone()),
+    ));
     for y in 0..=1 {
         for z in -5..=5 {
             let z = z as f32;
@@ -126,7 +154,7 @@ fn setup(
                     last_spawn: None,
                     spawned: 0,
                 },
-                Transform::from_translation(red_ship_center + vec3(4., y * 5., 4.0 * z))
+                Transform::from_translation(red_capital_ship_center + vec3(4., y * 5., 4.0 * z))
                     .with_rotation(Quat::from_rotation_y(-90.0_f32.to_radians())),
             ));
             commands.spawn((
@@ -137,7 +165,7 @@ fn setup(
                     last_spawn: None,
                     spawned: 0,
                 },
-                Transform::from_translation(red_ship_center + vec3(-4., y * 5., 4.0 * z))
+                Transform::from_translation(red_capital_ship_center + vec3(-4., y * 5., 4.0 * z))
                     .with_rotation(Quat::from_rotation_y(90.0_f32.to_radians())),
             ));
         }
@@ -154,7 +182,7 @@ fn setup(
                     last_spawn: None,
                     spawned: 0,
                 },
-                Transform::from_translation(blue_ship_center + vec3(-4., y * 5., 4.0 * z))
+                Transform::from_translation(blue_capital_ship_center + vec3(-4., y * 5., 4.0 * z))
                     .with_rotation(Quat::from_rotation_y(90.0_f32.to_radians())),
             ));
             commands.spawn((
@@ -165,7 +193,7 @@ fn setup(
                     last_spawn: None,
                     spawned: 0,
                 },
-                Transform::from_translation(blue_ship_center + vec3(4., y * 5., 4.0 * z))
+                Transform::from_translation(blue_capital_ship_center + vec3(4., y * 5., 4.0 * z))
                     .with_rotation(Quat::from_rotation_y(-90.0_f32.to_radians())),
             ));
         }
@@ -173,10 +201,10 @@ fn setup(
 
     commands.spawn((
         TeamTarget(Team::Red),
-        Transform::from_translation(blue_ship_center),
+        Transform::from_translation(blue_capital_ship_center),
     ));
     commands.spawn((
         TeamTarget(Team::Blue),
-        Transform::from_translation(red_ship_center),
+        Transform::from_translation(red_capital_ship_center),
     ));
 }

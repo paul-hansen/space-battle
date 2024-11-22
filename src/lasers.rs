@@ -22,8 +22,8 @@ struct LaserAssets {
     material: Handle<StandardMaterial>,
 }
 
-#[derive(Component, Reflect, Default)]
-pub struct Laser;
+#[derive(Component, Reflect)]
+pub struct Laser(Entity);
 
 #[derive(Component, Reflect)]
 #[component(on_insert=gun_on_add)]
@@ -73,16 +73,16 @@ fn move_lasers(mut lasers: Query<&mut Transform, With<Laser>>, time: Res<Time>) 
 
 fn shoot(
     mut commands: Commands,
-    mut guns: Query<(&GlobalTransform, &mut Gun)>,
+    mut guns: Query<(Entity, &GlobalTransform, &mut Gun)>,
     laser_assets: Res<LaserAssets>,
     time: Res<Time>,
 ) {
-    for (transform, mut gun) in guns.iter_mut() {
+    for (owner, transform, mut gun) in guns.iter_mut() {
         let now = time.elapsed_secs_f64();
         if gun.last_fired + 5.0 < now {
             gun.last_fired = now;
             commands.spawn((
-                Laser,
+                Laser(owner),
                 Mesh3d(laser_assets.mesh.clone()),
                 MeshMaterial3d(laser_assets.material.clone()),
                 DespawnAfter::new(Duration::from_secs(2), &time),
@@ -96,19 +96,22 @@ fn shoot(
 
 fn laser_hit_detect(
     mut commands: Commands,
-    lasers: Query<(Entity, &mut GlobalTransform), With<Laser>>,
+    lasers: Query<(Entity, &mut GlobalTransform, &Laser)>,
     spatial_query: SpatialQuery,
 ) {
-    lasers.iter().for_each(|(entity, transform)| {
+    lasers.iter().for_each(|(entity, transform, Laser(owner))| {
         if let Some(first_hit) = spatial_query.cast_ray(
             transform.translation(),
             Dir3::NEG_Z,
             0.5,
             true,
-            &SpatialQueryFilter::from_excluded_entities([entity]),
+            &SpatialQueryFilter::from_excluded_entities([entity, *owner]),
         ) {
             if let Some(e) = commands.get_entity(first_hit.entity) {
                 e.try_despawn_recursive();
+                if let Some(e) = commands.get_entity(entity) {
+                    e.try_despawn_recursive();
+                }
             }
         }
     });
