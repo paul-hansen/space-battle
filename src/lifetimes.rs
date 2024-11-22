@@ -23,7 +23,7 @@ impl DespawnAfter {
 fn despawn_after(mut commands: Commands, query: Query<(Entity, &DespawnAfter)>, time: Res<Time>) {
     for (entity, DespawnAfter { despawn_at }) in query.iter() {
         if time.elapsed_secs_f64() > *despawn_at {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).try_despawn_recursive();
         }
     }
 }

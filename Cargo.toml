@@ -7,5 +7,6 @@ rand = "0.8.5"
 bevy = { version = "0.15.0-rc.3", features = ["wayland"] }
 bevy_spatial = { git = "https://github.com/paul-hansen/bevy-spatial.git", rev = "68cfc7d" }
 bevy_embedded_assets = "0.12.0-rc.1"
+avian3d = {git="https://github.com/Jondolf/avian.git", features=["simd", "parallel"]}
 color-backtrace = "0.6.1"
-glam = { version = "0.29.2", features = ["glam-assert"] }
+glam = { version = "0.29.2" }

@@ -7,6 +7,7 @@ mod spawners;
 
 use std::time::Duration;
 
+use avian3d::PhysicsPlugins;
 use bevy::{
     core_pipeline::bloom::Bloom,
     math::vec3,
@@ -53,7 +54,9 @@ fn main() {
                     .into(),
                     ..default()
                 }),
+            PhysicsPlugins::default(),
             FpsOverlayPlugin::default(),
+            // avian3d::prelude::PhysicsDebugPlugin::default(),
             ships::plugin,
             lasers::plugin,
             lifetimes::plugin,
@@ -109,7 +112,7 @@ fn setup(
             .with_translation(vec3(-200., 50., -100.)),
     ));
 
-    let red_ship_center = vec3(-80., 0., 0.);
+    let red_ship_center = vec3(-80., 3., 5.);
     let blue_ship_center = vec3(80., 0., 0.);
     for y in 0..=1 {
         for z in -5..=5 {
@@ -123,8 +126,19 @@ fn setup(
                     last_spawn: None,
                     spawned: 0,
                 },
-                Transform::from_translation(red_ship_center + vec3(0., y * 5., 4.0 * z))
+                Transform::from_translation(red_ship_center + vec3(4., y * 5., 4.0 * z))
                     .with_rotation(Quat::from_rotation_y(-90.0_f32.to_radians())),
+            ));
+            commands.spawn((
+                Spawner {
+                    max: Some(100),
+                    delay: Duration::from_secs_f32(0.2),
+                    team: Team::Red,
+                    last_spawn: None,
+                    spawned: 0,
+                },
+                Transform::from_translation(red_ship_center + vec3(-4., y * 5., 4.0 * z))
+                    .with_rotation(Quat::from_rotation_y(90.0_f32.to_radians())),
             ));
         }
     }
@@ -140,8 +154,19 @@ fn setup(
                     last_spawn: None,
                     spawned: 0,
                 },
-                Transform::from_translation(blue_ship_center + vec3(0., y * 5., 4.0 * z))
+                Transform::from_translation(blue_ship_center + vec3(-4., y * 5., 4.0 * z))
                     .with_rotation(Quat::from_rotation_y(90.0_f32.to_radians())),
+            ));
+            commands.spawn((
+                Spawner {
+                    max: Some(100),
+                    delay: Duration::from_secs_f32(0.2),
+                    team: Team::Blue,
+                    last_spawn: None,
+                    spawned: 0,
+                },
+                Transform::from_translation(blue_ship_center + vec3(4., y * 5., 4.0 * z))
+                    .with_rotation(Quat::from_rotation_y(-90.0_f32.to_radians())),
             ));
         }
     }

@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use avian3d::prelude::Collider;
 use bevy::{
     math::vec3, prelude::*, render::mesh::ConeMeshBuilder, time::common_conditions::on_timer,
     utils::HashMap,
@@ -97,7 +98,7 @@ fn update_ship_count(
         Entities: {entity_count}\n\
         ├ Ships: {ship_count}\n\
         └ Lasers: {laser_count}\n\
-    "
+        "
     );
 }
 
@@ -126,6 +127,7 @@ impl Command for SpawnShip {
                     .expect("ship_assets should be initialized")
                     .clone(),
             ),
+            Collider::sphere(0.5),
             self.transform,
             Visibility::Visible,
             self.team,

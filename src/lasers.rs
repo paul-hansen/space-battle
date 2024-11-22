@@ -1,6 +1,10 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
+use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
+use bevy::{
+    ecs::{component::ComponentId, world::DeferredWorld},
+    prelude::*,
+};
 use rand::{thread_rng, Rng};
 
 use crate::lifetimes::DespawnAfter;
@@ -9,6 +13,7 @@ pub fn plugin(app: &mut App) {
     app.register_type::<Laser>();
     app.add_systems(Startup, setup);
     app.add_systems(Update, (shoot, move_lasers));
+    app.add_systems(Update, laser_hit_detect);
 }
 
 #[derive(Resource, Reflect)]
@@ -21,9 +26,18 @@ struct LaserAssets {
 pub struct Laser;
 
 #[derive(Component, Reflect)]
+#[component(on_insert=gun_on_add)]
 pub struct Gun {
     pub(crate) last_fired: f64,
 }
+
+fn gun_on_add(mut world: DeferredWorld, entity: Entity, _id: ComponentId) {
+    let last_fired = world.resource::<Time>().elapsed_secs_f64();
+    if let Some(mut entity) = world.get_mut::<Gun>(entity) {
+        entity.last_fired = last_fired;
+    }
+}
+
 impl Default for Gun {
     fn default() -> Self {
         Self {
@@ -78,4 +92,24 @@ fn shoot(
             ));
         }
     }
+}
+
+fn laser_hit_detect(
+    mut commands: Commands,
+    lasers: Query<(Entity, &mut GlobalTransform), With<Laser>>,
+    spatial_query: SpatialQuery,
+) {
+    lasers.iter().for_each(|(entity, transform)| {
+        if let Some(first_hit) = spatial_query.cast_ray(
+            transform.translation(),
+            Dir3::NEG_Z,
+            0.5,
+            true,
+            &SpatialQueryFilter::from_excluded_entities([entity]),
+        ) {
+            if let Some(e) = commands.get_entity(first_hit.entity) {
+                e.try_despawn_recursive();
+            }
+        }
+    });
 }
