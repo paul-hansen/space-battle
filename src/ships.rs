@@ -1,18 +1,25 @@
 use bevy::{
-    math::vec3,
-    pbr::{NotShadowCaster, NotShadowReceiver},
+    math::{vec3, Vec3A},
     prelude::*,
     render::mesh::ConeMeshBuilder,
     utils::HashMap,
 };
+use bevy_spatial::{kdtree::KDTree3A, SpatialAccess};
 
-use crate::lasers::Gun;
+use crate::{lasers::Gun, TrackedByKDTree};
 
 pub fn plugin(app: &mut App) {
     app.register_type::<Ship>();
     app.register_type::<Team>();
     app.add_systems(PreStartup, setup);
-    app.add_systems(Update, (move_ships, rotate_towards_target));
+    app.add_systems(
+        Update,
+        (
+            move_ships,
+            rotate_towards_target,
+            rotate_away_from_obstacles,
+        ),
+    );
 }
 
 pub struct SpawnShip {
@@ -43,15 +50,12 @@ impl Command for SpawnShip {
             self.transform,
             Visibility::Visible,
             self.team,
-            Gun::default(),
-            NotShadowReceiver,
-            NotShadowCaster,
         ));
     }
 }
 
 #[derive(Reflect, Component, Default)]
-#[require(Transform, Visibility)]
+#[require(Transform, Visibility, Gun, TrackedByKDTree)]
 pub struct Ship;
 
 #[derive(Copy, Clone, Component, Reflect, Default, Hash, Eq, PartialEq)]
@@ -93,8 +97,14 @@ impl TryFrom<usize> for Team {
     }
 }
 
+/// A priority target for the given team to attack
 #[derive(Component, Reflect, Default)]
-pub struct Target(pub Team);
+pub struct TeamTarget(pub Team);
+
+#[derive(Component, Reflect, Default)]
+pub struct Obstacle {
+    pub radius: f32,
+}
 
 #[derive(Resource, Reflect, Default)]
 pub struct ShipAssets {
@@ -145,7 +155,7 @@ fn move_ships(mut ships: Query<&mut Transform, With<Ship>>, time: Res<Time>) {
 
 pub fn rotate_towards_target(
     mut ships: Query<(&mut Transform, &GlobalTransform, &Team), With<Ship>>,
-    targets: Query<(&GlobalTransform, &Target)>,
+    targets: Query<(&GlobalTransform, &TeamTarget)>,
     time: Res<Time>,
 ) {
     let targets: Vec<_> = targets.into_iter().collect();
@@ -177,6 +187,75 @@ pub fn rotate_towards_target(
         let look = global_transform.looking_at(target, Vec3::Y).rotation;
         transform.rotation = transform
             .rotation
-            .rotate_towards(look, 20.0_f32.to_radians() * time.delta_secs());
+            .rotate_towards(look, 40.0_f32.to_radians() * time.delta_secs());
     }
+}
+
+pub fn rotate_away_from_obstacles(
+    mut ships: Query<(&mut Transform, &GlobalTransform), With<Ship>>,
+    tree: Res<KDTree3A<TrackedByKDTree>>,
+    time: Res<Time>,
+    mut gizmos: Gizmos,
+) {
+    ships
+        .iter_mut()
+        .for_each(|(mut transform, global_transform)| {
+            let translation = global_transform.translation();
+            let Some((other_pos, other_entity)) =
+                tree.nearest_neighbour(global_transform.translation_vec3a())
+            else {
+                return;
+            };
+
+            // Create a target direction pointing the ship away from the other entity.
+            let target_direction = Vec3::from(other_pos) - translation;
+            let distance = target_direction.length();
+            if !(0.1..=2.0).contains(&distance) {
+                return;
+            }
+            let target_direction = target_direction.normalize();
+            // println!("{:?} {:?}", transform.rotation, target_direction);
+            transform.rotation = rotate_towards(transform.rotation, target_direction, 100.0 * time.delta_secs());
+            assert!(transform.forward().is_normalized());
+            // gizmos.line(
+            //     global_transform.translation(),
+            //     (global_transform.translation_vec3a() + away_direction * 3.0).into(),
+            //     Color::WHITE,
+            // );
+
+            // transform.rotation = transform
+            //     .rotation
+            //     .rotate_towards(look, 20.0_f32.to_radians() * time.delta_secs());
+        });
+}
+
+fn rotate_towards(quat: Quat, target_dir: Vec3, angle_deg: f32) -> Quat {
+    // Ensure the target direction is normalized
+    let target_dir = target_dir.normalize();
+
+    // Compute the current direction (transform the Z-axis vector by the quaternion)
+    let current_dir = quat * Vec3::Z;
+
+    // Calculate the axis of rotation using the cross product
+    let rotation_axis = current_dir.cross(target_dir);
+
+    // If the cross product is zero, the vectors are parallel, no rotation needed
+    if rotation_axis.length_squared() < f32::EPSILON {
+        return quat.normalize();
+    }
+
+    // Normalize the rotation axis
+    let rotation_axis = rotation_axis.normalize();
+
+    // Convert angle from degrees to radians
+    let angle_rad = angle_deg.to_radians();
+
+    // Create a quaternion representing the rotation by `angle_rad` around the `rotation_axis`
+    let rotation_quat = Quat::from_axis_angle(rotation_axis, angle_rad);
+
+    // Combine the current quaternion with the rotation quaternion
+    let result_quat = rotation_quat * quat;
+
+    // Normalize the result to ensure it remains a valid rotation quaternion
+    result_quat.normalize()
 }

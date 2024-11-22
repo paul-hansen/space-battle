@@ -12,7 +12,6 @@ args = ["run", "--release"]
 run_task = "run"
 watch = true
 
-
 [tasks.watch-release]
 run_task = "run"
 watch = true

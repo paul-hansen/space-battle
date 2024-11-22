@@ -7,19 +7,21 @@ mod spawners;
 use std::time::Duration;
 
 use bevy::{
-    core_pipeline::bloom::Bloom,
-    math::vec3,
-    prelude::*,
-    render::{
+    core_pipeline::bloom::Bloom, gizmos::GizmoPlugin, math::vec3, prelude::*, render::{
         settings::{PowerPreference, WgpuSettings},
         RenderPlugin,
-    },
+    }
 };
 use bevy_dev_tools::fps_overlay::FpsOverlayPlugin;
+use bevy_spatial::AutomaticUpdate;
 use ships::*;
 use spawners::Spawner;
 
+#[derive(Component, Default)]
+struct TrackedByKDTree;
+
 fn main() {
+    color_backtrace::install();
     App::new()
         .add_plugins((
             DefaultPlugins
@@ -46,6 +48,9 @@ fn main() {
             lasers::plugin,
             lifetimes::plugin,
             spawners::plugin,
+            AutomaticUpdate::<TrackedByKDTree>::new()
+                .with_frequency(Duration::from_secs_f32(0.2))
+                .with_spatial_ds(bevy_spatial::SpatialStructure::KDTree3A),
         ))
         .add_systems(Startup, setup)
         .run();
@@ -56,7 +61,6 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut ambient_light: ResMut<AmbientLight>,
-    ship_assets: ResMut<ShipAssets>,
 ) {
     // camera
     commands.spawn((
@@ -88,16 +92,16 @@ fn setup(
             .with_translation(vec3(-200., 50., -100.)),
     ));
 
-    let red_ship_center = vec3(-50., 0., 0.);
-    let blue_ship_center = vec3(50., 0., 0.);
+    let red_ship_center = vec3(-80., 0., 0.);
+    let blue_ship_center = vec3(80., 0., 0.);
     for y in 0..=1 {
-        for z in 0..=11 {
+        for z in -5..=5 {
             let z = z as f32;
             let y = y as f32;
             commands.spawn((
                 Spawner {
                     max: Some(100),
-                    delay: Duration::from_secs_f32(0.1),
+                    delay: Duration::from_secs_f32(0.2),
                     team: Team::Red,
                     last_spawn: None,
                     spawned: 0,
@@ -108,13 +112,13 @@ fn setup(
         }
     }
     for y in 0..=1 {
-        for z in 0..=11 {
+        for z in -5..=5 {
             let z = z as f32;
             let y = y as f32;
             commands.spawn((
                 Spawner {
                     max: Some(100),
-                    delay: Duration::from_secs_f32(0.1),
+                    delay: Duration::from_secs_f32(0.2),
                     team: Team::Blue,
                     last_spawn: None,
                     spawned: 0,
@@ -126,11 +130,11 @@ fn setup(
     }
 
     commands.spawn((
-        Target(Team::Red),
+        TeamTarget(Team::Red),
         Transform::from_translation(blue_ship_center),
     ));
     commands.spawn((
-        Target(Team::Blue),
+        TeamTarget(Team::Blue),
         Transform::from_translation(red_ship_center),
     ));
 }
