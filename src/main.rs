@@ -39,6 +39,8 @@ fn main() {
                         title: "Space Battle".to_string(),
                         name: Some("bevy.space-battle".into()),
                         present_mode: bevy::window::PresentMode::AutoNoVsync,
+                        fit_canvas_to_parent: true,
+                        prevent_default_event_handling: false,
                         ..default()
                     }),
                     ..default()
