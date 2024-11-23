@@ -139,7 +139,7 @@ impl Command for SpawnShip {
 #[require(Transform, Visibility, Gun, TrackedByKDTree)]
 pub struct Ship;
 
-#[derive(Copy, Clone, Component, Reflect, Default, Hash, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Component, Reflect, Default, Hash, Eq, PartialEq)]
 #[require(Ship)]
 pub enum Team {
     #[default]
