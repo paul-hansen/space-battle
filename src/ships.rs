@@ -187,7 +187,7 @@ pub struct Obstacle {
     pub radius: f32,
 }
 
-#[derive(Resource, Reflect, Default)]
+#[derive(Resource, Reflect, Clone, Default)]
 pub struct ShipAssets {
     pub materials: HashMap<Team, Handle<StandardMaterial>>,
     pub mesh: HashMap<Team, Handle<Mesh>>,

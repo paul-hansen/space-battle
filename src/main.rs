@@ -1,4 +1,5 @@
 //! A minimal example that outputs "hello world"
+mod capital_ships;
 mod fps_overlay;
 mod lasers;
 mod lifetimes;
@@ -13,14 +14,15 @@ use bevy::{
     math::vec3,
     prelude::*,
     render::{
-        mesh::CylinderMeshBuilder, settings::{PowerPreference, WgpuSettings}, RenderPlugin
+        settings::{PowerPreference, WgpuSettings},
+        RenderPlugin,
     },
 };
 use bevy_embedded_assets::{EmbeddedAssetPlugin, PluginMode};
 use bevy_spatial::AutomaticUpdate;
+use capital_ships::SpawnCapitalShip;
 use fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
 use ships::*;
-use spawners::Spawner;
 
 #[derive(Component, Default)]
 struct TrackedByKDTree;
@@ -60,6 +62,7 @@ fn main() {
             lasers::plugin,
             lifetimes::plugin,
             spawners::plugin,
+            capital_ships::plugin,
             AutomaticUpdate::<TrackedByKDTree>::new()
                 .with_frequency(Duration::from_secs_f32(0.2))
                 .with_spatial_ds(bevy_spatial::SpatialStructure::KDTree3A),
@@ -72,7 +75,6 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    ship_assets: Res<ShipAssets>,
     mut ambient_light: ResMut<AmbientLight>,
     asset_server: ResMut<AssetServer>,
     mut fps_overlay_config: ResMut<FpsOverlayConfig>,
@@ -113,91 +115,16 @@ fn setup(
     ));
 
     let red_capital_ship_center = vec3(-80., -13., 35.);
-    commands.spawn((
-        Mesh3d(meshes.add(CylinderMeshBuilder{
-            resolution: 6,
-            segments: 1,
-            caps: true,
-            ..default()
-        })),
-        Transform{
-            translation: red_capital_ship_center,
-            scale: Vec3::new(10., 60., 10.),
-            rotation: Quat::from_axis_angle(Vec3::X , 90.0_f32.to_radians()),
-        },
-        MeshMaterial3d(ship_assets.materials.get(&Team::Red).unwrap().clone()),
-    ));
+    commands.queue(SpawnCapitalShip {
+        transform: Transform::from_translation(red_capital_ship_center)
+            .with_rotation(Quat::from_axis_angle(Vec3::Y, 180.0_f32.to_radians())),
+        team: Team::Red,
+    });
     let blue_capital_ship_center = vec3(80., 1., 0.);
-    commands.spawn((
-        Mesh3d(meshes.add(CylinderMeshBuilder{
-            resolution: 6,
-            segments: 1,
-            caps: true,
-            ..default()
-        })),
-        Transform{
-            translation: blue_capital_ship_center,
-            scale: Vec3::new(10., 60., 10.),
-            rotation: Quat::from_axis_angle(Vec3::X , 90.0_f32.to_radians()),
-        },
-        MeshMaterial3d(ship_assets.materials.get(&Team::Blue).unwrap().clone()),
-    ));
-    for y in 0..=1 {
-        for z in -5..=5 {
-            let z = z as f32;
-            let y = y as f32;
-            commands.spawn((
-                Spawner {
-                    max: Some(100),
-                    delay: Duration::from_secs_f32(0.2),
-                    team: Team::Red,
-                    last_spawn: None,
-                    spawned: 0,
-                },
-                Transform::from_translation(red_capital_ship_center + vec3(4., y * 5., 4.0 * z))
-                    .with_rotation(Quat::from_rotation_y(-90.0_f32.to_radians())),
-            ));
-            commands.spawn((
-                Spawner {
-                    max: Some(100),
-                    delay: Duration::from_secs_f32(0.2),
-                    team: Team::Red,
-                    last_spawn: None,
-                    spawned: 0,
-                },
-                Transform::from_translation(red_capital_ship_center + vec3(-4., y * 5., 4.0 * z))
-                    .with_rotation(Quat::from_rotation_y(90.0_f32.to_radians())),
-            ));
-        }
-    }
-    for y in 0..=1 {
-        for z in -5..=5 {
-            let z = z as f32;
-            let y = y as f32;
-            commands.spawn((
-                Spawner {
-                    max: Some(100),
-                    delay: Duration::from_secs_f32(0.2),
-                    team: Team::Blue,
-                    last_spawn: None,
-                    spawned: 0,
-                },
-                Transform::from_translation(blue_capital_ship_center + vec3(-4., y * 5., 4.0 * z))
-                    .with_rotation(Quat::from_rotation_y(90.0_f32.to_radians())),
-            ));
-            commands.spawn((
-                Spawner {
-                    max: Some(100),
-                    delay: Duration::from_secs_f32(0.2),
-                    team: Team::Blue,
-                    last_spawn: None,
-                    spawned: 0,
-                },
-                Transform::from_translation(blue_capital_ship_center + vec3(4., y * 5., 4.0 * z))
-                    .with_rotation(Quat::from_rotation_y(-90.0_f32.to_radians())),
-            ));
-        }
-    }
+    commands.queue(SpawnCapitalShip {
+        transform: Transform::from_translation(blue_capital_ship_center),
+        team: Team::Blue,
+    });
 
     commands.spawn((
         TeamTarget(Team::Red),
